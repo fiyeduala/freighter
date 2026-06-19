@@ -32,9 +32,7 @@ export function ErrorState({
   );
 
   if (fullPage) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center px-4">{content}</div>
-    );
+    return <div className="flex min-h-[60vh] items-center justify-center px-4">{content}</div>;
   }
 
   return <div className="flex justify-center py-12">{content}</div>;

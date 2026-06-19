@@ -25,10 +25,5 @@ export function MapWrapper({ className, ...options }: MapWrapperProps) {
     );
   }
 
-  return (
-    <div
-      ref={containerRef}
-      className={cn("map-container", className)}
-    />
-  );
+  return <div ref={containerRef} className={cn("map-container", className)} />;
 }

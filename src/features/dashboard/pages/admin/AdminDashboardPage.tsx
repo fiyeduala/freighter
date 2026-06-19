@@ -1,11 +1,4 @@
-import {
-  AlertTriangle,
-  Package,
-  Truck,
-  TrendingUp,
-  Users,
-  CheckCircle2,
-} from "lucide-react";
+import { AlertTriangle, Package, Truck, TrendingUp, Users, CheckCircle2 } from "lucide-react";
 import { StatCard } from "@/components/shared/StatCard";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,13 +30,7 @@ export function AdminDashboardPage() {
           accent="default"
           loading={false}
         />
-        <StatCard
-          title="In Transit"
-          value="—"
-          icon={Truck}
-          accent="default"
-          loading={false}
-        />
+        <StatCard title="In Transit" value="—" icon={Truck} accent="default" loading={false} />
         <StatCard
           title="Delivered Today"
           value="—"

@@ -74,9 +74,7 @@ export function RegisterPage() {
                   placeholder="you@example.com"
                   {...register("email")}
                 />
-                {errors.email && (
-                  <p className="text-xs text-destructive">{errors.email.message}</p>
-                )}
+                {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone number</Label>
@@ -86,9 +84,7 @@ export function RegisterPage() {
                   placeholder="+234 800 000 0000"
                   {...register("phone")}
                 />
-                {errors.phone && (
-                  <p className="text-xs text-destructive">{errors.phone.message}</p>
-                )}
+                {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
@@ -115,9 +111,7 @@ export function RegisterPage() {
                   </a>
                 </Label>
               </div>
-              {errors.terms && (
-                <p className="text-xs text-destructive">{errors.terms.message}</p>
-              )}
+              {errors.terms && <p className="text-xs text-destructive">{errors.terms.message}</p>}
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="animate-spin" />}
                 Create account

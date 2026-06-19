@@ -73,9 +73,7 @@ export function LoginPage() {
                   autoComplete="email"
                   {...register("email")}
                 />
-                {errors.email && (
-                  <p className="text-xs text-destructive">{errors.email.message}</p>
-                )}
+                {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

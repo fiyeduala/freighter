@@ -48,9 +48,7 @@ export function ForgotPasswordPage() {
         <Card>
           <CardHeader>
             <CardTitle>Forgot your password?</CardTitle>
-            <CardDescription>
-              Enter your email and we&apos;ll send a reset link
-            </CardDescription>
+            <CardDescription>Enter your email and we&apos;ll send a reset link</CardDescription>
           </CardHeader>
           <CardContent>
             {sent ? (
@@ -65,7 +63,12 @@ export function ForgotPasswordPage() {
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="you@example.com" {...register("email")} />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    {...register("email")}
+                  />
                   {errors.email && (
                     <p className="text-xs text-destructive">{errors.email.message}</p>
                   )}

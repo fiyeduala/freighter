@@ -35,7 +35,10 @@ export function useMapbox(options: MapOptions = {}): RefObject<HTMLDivElement> {
     mapRef.current = new mapboxgl.Map({
       container: containerRef.current,
       style: options.style ?? DEFAULT_STYLE,
-      center: [options.center?.lng ?? DEFAULT_CENTER.lng, options.center?.lat ?? DEFAULT_CENTER.lat],
+      center: [
+        options.center?.lng ?? DEFAULT_CENTER.lng,
+        options.center?.lat ?? DEFAULT_CENTER.lat,
+      ],
       zoom: options.zoom ?? 10,
     });
 

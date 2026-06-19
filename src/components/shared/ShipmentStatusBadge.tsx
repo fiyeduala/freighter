@@ -2,10 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import type { ShipmentStatus } from "@/types";
 import type { BadgeProps } from "@/components/ui/badge";
 
-const STATUS_CONFIG: Record<
-  ShipmentStatus,
-  { label: string; variant: BadgeProps["variant"] }
-> = {
+const STATUS_CONFIG: Record<ShipmentStatus, { label: string; variant: BadgeProps["variant"] }> = {
   DRAFT: { label: "Draft", variant: "secondary" },
   REQUESTED: { label: "Requested", variant: "warning" },
   REVIEWED: { label: "Reviewed", variant: "info" },
