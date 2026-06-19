@@ -51,6 +51,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       name: data.name,
       phone: data.phone,
       avatar_url: data.avatar_url,
+      status: data.status,
+      onboarding_complete: data.onboarding_complete,
     };
     setUser(user);
   }

@@ -10,6 +10,7 @@ import { LoginPage } from "../LoginPage";
 vi.mock("@/features/auth/hooks/useAuth", () => ({
   useAuth: () => ({
     signIn: vi.fn(),
+    resendVerification: vi.fn(),
     user: null,
     isLoading: false,
   }),

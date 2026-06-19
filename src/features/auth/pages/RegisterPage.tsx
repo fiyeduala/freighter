@@ -36,9 +36,17 @@ export function RegisterPage() {
     setIsLoading(true);
     try {
       await signUp(data.email, data.password, data.name, data.phone);
-      navigate("/verify-email");
+      navigate("/verify-email", { state: { email: data.email } });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Registration failed");
+      const msg = err instanceof Error ? err.message : "Registration failed";
+      if (
+        msg.toLowerCase().includes("already registered") ||
+        msg.toLowerCase().includes("already exists")
+      ) {
+        toast.error("An account with this email already exists — try signing in");
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setIsLoading(false);
     }

@@ -8,6 +8,8 @@ export type AppUser = {
   name: string;
   phone: string | null;
   avatar_url: string | null;
+  status: "active" | "suspended" | "pending";
+  onboarding_complete: boolean;
 };
 
 /** Geo point */

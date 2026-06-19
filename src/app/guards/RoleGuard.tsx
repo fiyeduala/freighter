@@ -42,5 +42,9 @@ export function RoleGuard({ allowedRole, redirectTo = "/login" }: RoleGuardProps
     return <Navigate to={dashboardPath} replace />;
   }
 
+  if (!user.onboarding_complete) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
   return <Outlet />;
 }
