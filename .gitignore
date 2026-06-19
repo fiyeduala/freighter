@@ -38,6 +38,9 @@ dist-ssr
 /blob-report
 /playwright/.cache
 
+# TypeScript build cache
+*.tsbuildinfo
+
 # Supabase
 .supabase/
 supabase/.temp/
