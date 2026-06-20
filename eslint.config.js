@@ -9,7 +9,7 @@ import tseslint from "typescript-eslint";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default tseslint.config(
-  { ignores: ["dist", "playwright-report", "coverage", "*.config.*", "e2e"] },
+  { ignores: ["dist", "playwright-report", "coverage", "*.config.*", "e2e", "supabase/functions/**"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
