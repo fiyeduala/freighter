@@ -84,31 +84,31 @@ export function OnboardingPage() {
             </div>
             <h1 className="text-2xl font-bold">Welcome, {user.name.split(" ")[0]}!</h1>
             <p className="text-sm text-muted-foreground">
-              Your driver account is pending verification.
+              Complete your profile to start taking jobs.
             </p>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">What happens next</CardTitle>
+              <CardTitle className="text-base">Getting started</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
                 {[
                   {
-                    icon: Clock,
-                    title: "Verification in progress",
-                    body: "Our team will review your account within 24–48 hours.",
-                  },
-                  {
                     icon: ShieldCheck,
                     title: "Upload your documents",
-                    body: "You can upload your licence and vehicle documents from your profile after setup.",
+                    body: "Add your driver's licence, ID, vehicle papers, and insurance from your profile — Documents section.",
+                  },
+                  {
+                    icon: Clock,
+                    title: "Wait for verification",
+                    body: "Our team reviews submissions within 24–48 hours and will notify you once approved.",
                   },
                   {
                     icon: PackageCheck,
                     title: "Start accepting jobs",
-                    body: "Once approved, you will receive job offers in the app.",
+                    body: "Once approved you'll receive job offers and can go online to start earning.",
                   },
                 ].map(({ icon: Icon, title, body }) => (
                   <div key={title} className="flex items-start gap-3">
@@ -122,10 +122,16 @@ export function OnboardingPage() {
                   </div>
                 ))}
               </div>
-              <Button className="w-full" onClick={handleComplete} disabled={isLoading}>
-                {isLoading && <Loader2 className="animate-spin" />}
-                Go to my dashboard
-              </Button>
+              <div className="flex flex-col gap-2">
+                <Button className="w-full" onClick={handleComplete} disabled={isLoading}>
+                  {isLoading && <Loader2 className="animate-spin" />}
+                  Go to my dashboard
+                </Button>
+                <p className="text-center text-xs text-muted-foreground">
+                  You can upload documents from{" "}
+                  <span className="font-medium">Profile → Documents</span> at any time.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>

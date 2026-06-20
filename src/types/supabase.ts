@@ -72,6 +72,7 @@ export type DriverRow = {
   availability: Json | null;
   online: boolean;
   current_location: Json | null;
+  documents: Json | null;
 };
 
 export type VehicleTypeRow = {
