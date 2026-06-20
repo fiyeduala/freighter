@@ -3,9 +3,6 @@ insert into storage.buckets (id, name, public)
 values ('driver-documents', 'driver-documents', false)
 on conflict (id) do nothing;
 
--- Enable RLS on storage.objects if not already
-alter table storage.objects enable row level security;
-
 create policy "drivers_upload_own_docs"
 on storage.objects for insert to authenticated
 with check (

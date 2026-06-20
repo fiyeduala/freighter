@@ -39,7 +39,7 @@ export function AddInviteDriverPage() {
       .from("invite_tokens")
       .insert({
         email: data.email,
-        role: "driver" as "driver",
+        role: "driver" as const,
         expires_at: expiresAt,
         created_by: null,
         used_at: null,
