@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { MapPin, Navigation, ExternalLink, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { ShipmentStatusBadge } from "@/components/shared/ShipmentStatusBadge";
 import { useDriverTrip } from "@/features/drivers/hooks/useDriverTrip";
 import { supabase } from "@/lib/supabase";
+import { useAuthStore } from "@/stores/authStore";
 import type { ShipmentStatus } from "@/types";
 import type { Json } from "@/types/supabase";
 
@@ -29,46 +30,106 @@ function mapsUrl(lat: number, lng: number): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
 }
 
+const EMIT_INTERVAL_MS = 15_000;
+const DB_INSERT_INTERVAL = 4; // insert to DB every 4th emit (~60 s)
+const ETA_CALL_INTERVAL = 8; // call compute-eta every 8th emit (~2 min)
+
 export function NavigationPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const { trip, isLoading } = useDriverTrip(id);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const emitCount = useRef(0);
+  const driverIdRef = useRef<string | null>(null);
 
-  // Emit driver location to Supabase every 15 s while on this page
+  // Resolve driver.id once
+  useEffect(() => {
+    if (!user?.id) return;
+    void supabase
+      .from("drivers")
+      .select("id")
+      .eq("profile_id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data) driverIdRef.current = data.id;
+      });
+  }, [user?.id]);
+
+  // Broadcast + persist location while this page is mounted
   useEffect(() => {
     if (!id) return;
     let stopped = false;
+
+    const channel = supabase.channel(`tracking:${id}`, {
+      config: { broadcast: { ack: false } },
+    });
+    void channel.subscribe();
 
     const emit = () => {
       if (stopped) return;
       navigator.geolocation?.getCurrentPosition(
         (pos) => {
           void (async () => {
-            const geo = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            const { data: ship } = await supabase
-              .from("shipments")
-              .select("driver_id")
-              .eq("id", id)
-              .single();
-            if (ship?.driver_id) {
-              await supabase
-                .from("drivers")
-                .update({ current_location: geo as never })
-                .eq("id", ship.driver_id);
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            const heading = pos.coords.heading ?? undefined;
+            const speed = pos.coords.speed ?? undefined;
+            const timestamp = new Date().toISOString();
+
+            // Broadcast to all subscribers
+            await channel.send({
+              type: "broadcast",
+              event: "location",
+              payload: { lat, lng, heading, speed, timestamp },
+            });
+
+            emitCount.current += 1;
+
+            // Insert to DB periodically for persistence
+            if (emitCount.current % DB_INSERT_INTERVAL === 0 && driverIdRef.current) {
+              await supabase.from("driver_locations").insert({
+                driver_id: driverIdRef.current,
+                shipment_id: id,
+                lat,
+                lng,
+                heading: heading ?? null,
+                speed: speed ?? null,
+                recorded_at: timestamp,
+              });
+            }
+
+            // Compute ETA periodically and broadcast it
+            if (emitCount.current % ETA_CALL_INTERVAL === 0) {
+              const { data: etaData } = await supabase.functions.invoke<{
+                eta_minutes: number | null;
+                distance_remaining_km: number | null;
+                eta_timestamp: string | null;
+                via_mapbox: boolean;
+              }>("compute-eta", { body: { shipment_id: id, driver_lat: lat, driver_lng: lng } });
+
+              if (etaData) {
+                await channel.send({
+                  type: "broadcast",
+                  event: "eta",
+                  payload: etaData,
+                });
+              }
             }
           })();
         },
         (err) => setLocationError(err.message),
-        { enableHighAccuracy: true, timeout: 10000 },
+        { enableHighAccuracy: true, timeout: 10_000 },
       );
     };
 
     emit();
-    const interval = setInterval(emit, 15000);
+    const interval = setInterval(emit, EMIT_INTERVAL_MS);
+
     return () => {
       stopped = true;
       clearInterval(interval);
+      void supabase.removeChannel(channel);
     };
   }, [id]);
 
@@ -126,12 +187,7 @@ export function NavigationPage() {
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={() =>
-                    window.open(
-                      `https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}&travelmode=driving`,
-                      "_blank",
-                    )
-                  }
+                  onClick={() => window.open(mapsUrl(target.lat, target.lng), "_blank")}
                 >
                   <Navigation className="h-4 w-4" />
                   Turn-by-turn directions
@@ -150,7 +206,8 @@ export function NavigationPage() {
           )}
 
           <p className="text-center text-xs text-muted-foreground">
-            Your location is being shared with dispatch every 15 seconds.
+            Broadcasting location every {EMIT_INTERVAL_MS / 1000} s · saving to DB every ~
+            {(EMIT_INTERVAL_MS * DB_INSERT_INTERVAL) / 1000} s
           </p>
         </CardContent>
       </Card>
