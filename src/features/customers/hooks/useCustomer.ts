@@ -29,11 +29,7 @@ export function useCustomer(id?: string) {
         { data: orders },
       ] = await Promise.all([
         supabase.from("customers").select("*, profile:profiles(*)").eq("id", id!).single(),
-        supabase
-          .from("customer_addresses")
-          .select("*")
-          .eq("customer_id", id!)
-          .order("created_at"),
+        supabase.from("customer_addresses").select("*").eq("customer_id", id!).order("created_at"),
         supabase
           .from("shipments")
           .select("id, status, created_at, pickup, destination")

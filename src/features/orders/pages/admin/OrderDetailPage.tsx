@@ -53,7 +53,10 @@ export function OrderDetailPage() {
     <div className="space-y-6">
       <PageHeader
         title={order.invoice_no ? `Invoice ${order.invoice_no}` : `Order ${order.id.slice(0, 8)}`}
-        breadcrumbs={[{ label: "Orders", href: "/admin/orders" }, { label: order.invoice_no ?? order.id.slice(0, 8) }]}
+        breadcrumbs={[
+          { label: "Orders", href: "/admin/orders" },
+          { label: order.invoice_no ?? order.id.slice(0, 8) },
+        ]}
         actions={
           <div className="flex gap-2">
             {order.shipment && (
@@ -79,7 +82,7 @@ export function OrderDetailPage() {
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6 lg:col-span-2">
           {/* Line items */}
           <Card>
             <CardHeader className="pb-3">
@@ -203,7 +206,7 @@ export function OrderDetailPage() {
 
           {/* Meta */}
           <Card>
-            <CardContent className="pt-4 space-y-2 text-sm">
+            <CardContent className="space-y-2 pt-4 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Created</span>
                 <span>{format(parseISO(order.created_at), "dd MMM yyyy HH:mm")}</span>

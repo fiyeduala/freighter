@@ -50,9 +50,7 @@ export function OrdersListPage() {
       className="cursor-pointer hover:bg-muted/50"
       onClick={() => navigate(`/admin/orders/${o.id}`)}
     >
-      <TableCell className="font-mono text-xs">
-        {o.invoice_no ?? o.id.slice(0, 8)}
-      </TableCell>
+      <TableCell className="font-mono text-xs">{o.invoice_no ?? o.id.slice(0, 8)}</TableCell>
       <TableCell className="text-sm">{o.customer?.profile.name ?? "—"}</TableCell>
       <TableCell className="text-sm font-medium">₦{(o.total / 100).toLocaleString()}</TableCell>
       <TableCell>

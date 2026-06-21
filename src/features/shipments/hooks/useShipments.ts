@@ -15,10 +15,7 @@ export function useShipments(filter?: { status?: ShipmentStatus | "all" }) {
   const { data = [], isLoading } = useQuery({
     queryKey: QK(filter),
     queryFn: async () => {
-      let query = supabase
-        .from("shipments")
-        .select("*")
-        .order("created_at", { ascending: false });
+      let query = supabase.from("shipments").select("*").order("created_at", { ascending: false });
 
       if (filter?.status && filter.status !== "all") {
         query = query.eq("status", filter.status);
@@ -34,10 +31,7 @@ export function useShipments(filter?: { status?: ShipmentStatus | "all" }) {
       ] as string[];
 
       const [{ data: customers }, { data: vts }] = await Promise.all([
-        supabase
-          .from("customers")
-          .select("*, profile:profiles(name, phone)")
-          .in("id", customerIds),
+        supabase.from("customers").select("*, profile:profiles(name, phone)").in("id", customerIds),
         vtIds.length
           ? supabase.from("vehicle_types").select("id, name").in("id", vtIds)
           : Promise.resolve({

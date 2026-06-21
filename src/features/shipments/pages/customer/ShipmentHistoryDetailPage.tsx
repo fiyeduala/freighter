@@ -94,14 +94,13 @@ export function ShipmentHistoryDetailPage() {
           .order("created_at", { ascending: false }),
       ]);
 
-      const items =
-        orderResult.data?.id
-          ? await supabase
-              .from("order_items")
-              .select("*")
-              .eq("order_id", orderResult.data.id)
-              .then((r) => r.data ?? [])
-          : [];
+      const items = orderResult.data?.id
+        ? await supabase
+            .from("order_items")
+            .select("*")
+            .eq("order_id", orderResult.data.id)
+            .then((r) => r.data ?? [])
+        : [];
 
       return {
         shipment: shipment as ShipmentRow,
@@ -145,7 +144,7 @@ export function ShipmentHistoryDetailPage() {
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-4">
+        <div className="space-y-4 lg:col-span-2">
           {/* Status */}
           <Card>
             <CardContent className="pt-4">
@@ -160,7 +159,7 @@ export function ShipmentHistoryDetailPage() {
 
           {/* Locations */}
           <Card>
-            <CardContent className="pt-4 space-y-4">
+            <CardContent className="space-y-4 pt-4">
               <div className="flex gap-3">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
                 {locationCard(shipment.pickup, "Pickup")}
@@ -233,12 +232,8 @@ export function ShipmentHistoryDetailPage() {
                     <div key={ev.id} className="flex items-start gap-3">
                       <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
                       <div>
-                        <p className="text-sm font-medium">
-                          {EVENT_LABELS[ev.event] ?? ev.event}
-                        </p>
-                        {ev.note && (
-                          <p className="text-xs text-muted-foreground">{ev.note}</p>
-                        )}
+                        <p className="text-sm font-medium">{EVENT_LABELS[ev.event] ?? ev.event}</p>
+                        {ev.note && <p className="text-xs text-muted-foreground">{ev.note}</p>}
                         <p className="text-xs text-muted-foreground">
                           {format(parseISO(ev.created_at), "dd MMM yyyy, HH:mm")}
                         </p>
@@ -293,7 +288,7 @@ export function ShipmentHistoryDetailPage() {
 
           {order && (
             <Card>
-              <CardContent className="pt-4 space-y-2 text-sm">
+              <CardContent className="space-y-2 pt-4 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Order ID</span>
                   <span className="font-mono text-xs">{order.id.slice(0, 8)}</span>

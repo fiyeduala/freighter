@@ -1,6 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { OrderRow, OrderItemRow, CustomerRow, ProfileRow, ShipmentRow } from "@/types/supabase";
+import type {
+  OrderRow,
+  OrderItemRow,
+  CustomerRow,
+  ProfileRow,
+  ShipmentRow,
+} from "@/types/supabase";
 
 export type OrderDetail = OrderRow & {
   items: OrderItemRow[];

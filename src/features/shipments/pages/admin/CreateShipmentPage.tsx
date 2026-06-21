@@ -101,15 +101,24 @@ type Action =
 
 function reducer(state: WizardState, action: Action): WizardState {
   switch (action.type) {
-    case "SET_CUSTOMER": return { ...state, customer: action.payload, step: 2 };
-    case "SET_PICKUP": return { ...state, pickup: action.payload, step: 3 };
-    case "SET_DESTINATION": return { ...state, destination: action.payload, step: 4 };
-    case "SET_CARGO": return { ...state, cargo: action.payload, step: 5 };
-    case "SET_VEHICLE": return { ...state, vehicle_type_id: action.payload, step: 6 };
-    case "SET_SCHEDULE": return { ...state, scheduled_at: action.payload, step: 7 };
-    case "SET_QUOTE": return { ...state, quote: action.payload };
-    case "GOTO": return { ...state, step: action.payload };
-    default: return state;
+    case "SET_CUSTOMER":
+      return { ...state, customer: action.payload, step: 2 };
+    case "SET_PICKUP":
+      return { ...state, pickup: action.payload, step: 3 };
+    case "SET_DESTINATION":
+      return { ...state, destination: action.payload, step: 4 };
+    case "SET_CARGO":
+      return { ...state, cargo: action.payload, step: 5 };
+    case "SET_VEHICLE":
+      return { ...state, vehicle_type_id: action.payload, step: 6 };
+    case "SET_SCHEDULE":
+      return { ...state, scheduled_at: action.payload, step: 7 };
+    case "SET_QUOTE":
+      return { ...state, quote: action.payload };
+    case "GOTO":
+      return { ...state, step: action.payload };
+    default:
+      return state;
   }
 }
 
@@ -136,41 +145,56 @@ function CustomerStep({ onNext }: { onNext: (c: SelectedCustomer) => void }) {
 
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
-    if (query.trim().length < 2) { setResults([]); return; }
-    timer.current = setTimeout(() => { void (async () => {
-      setLoading(true);
-      try {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("id, name, phone")
-          .eq("role", "customer")
-          .ilike("name", `%${query}%`)
-          .limit(10);
-        if (!profiles?.length) { setResults([]); return; }
-        const profileIds = profiles.map((p) => p.id);
-        const { data: customers } = await supabase
-          .from("customers")
-          .select("*")
-          .in("profile_id", profileIds);
-        if (!customers) { setResults([]); return; }
-        const profileMap = new Map(profiles.map((p) => [p.id, p]));
-        setResults(
-          customers
-            .filter((c) => profileMap.has(c.profile_id))
-            .map((c) => ({ ...c, profile: profileMap.get(c.profile_id)! })) as CustomerResult[],
-        );
-      } finally {
-        setLoading(false);
-      }
-    })(); }, 350);
-    return () => { if (timer.current) clearTimeout(timer.current); };
+    if (query.trim().length < 2) {
+      setResults([]);
+      return;
+    }
+    timer.current = setTimeout(() => {
+      void (async () => {
+        setLoading(true);
+        try {
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("id, name, phone")
+            .eq("role", "customer")
+            .ilike("name", `%${query}%`)
+            .limit(10);
+          if (!profiles?.length) {
+            setResults([]);
+            return;
+          }
+          const profileIds = profiles.map((p) => p.id);
+          const { data: customers } = await supabase
+            .from("customers")
+            .select("*")
+            .in("profile_id", profileIds);
+          if (!customers) {
+            setResults([]);
+            return;
+          }
+          const profileMap = new Map(profiles.map((p) => [p.id, p]));
+          setResults(
+            customers
+              .filter((c) => profileMap.has(c.profile_id))
+              .map((c) => ({ ...c, profile: profileMap.get(c.profile_id)! })) as CustomerResult[],
+          );
+        } finally {
+          setLoading(false);
+        }
+      })();
+    }, 350);
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
   }, [query]);
 
   return (
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold">Select customer</h2>
-        <p className="text-sm text-muted-foreground">Search by name to find the customer this shipment is for.</p>
+        <p className="text-sm text-muted-foreground">
+          Search by name to find the customer this shipment is for.
+        </p>
       </div>
 
       <div className="relative">
@@ -181,7 +205,9 @@ function CustomerStep({ onNext }: { onNext: (c: SelectedCustomer) => void }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        {loading && <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
+        {loading && (
+          <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+        )}
       </div>
 
       {results.length > 0 && (
@@ -190,7 +216,7 @@ function CustomerStep({ onNext }: { onNext: (c: SelectedCustomer) => void }) {
             <button
               key={c.id}
               type="button"
-              className="flex w-full items-center gap-3 rounded-md border p-3 text-left hover:bg-muted transition-colors"
+              className="flex w-full items-center gap-3 rounded-md border p-3 text-left transition-colors hover:bg-muted"
               onClick={() =>
                 onNext({ customer_id: c.id, name: c.profile.name, phone: c.profile.phone ?? "" })
               }
@@ -225,33 +251,46 @@ function useGeocoder(query: string) {
 
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
-    if (query.length < 3) { setSuggestions([]); return; }
-    timer.current = setTimeout(() => { void (async () => {
-      const token = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
-      if (!token) return;
-      setLoading(true);
-      try {
-        const res = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json` +
-            `?country=NG&types=address,place,locality,neighborhood&limit=5&access_token=${token}`,
-        );
-        const json = (await res.json()) as {
-          features: { place_name: string; center: [number, number]; context?: { id: string; text: string }[] }[];
-        };
-        setSuggestions(
-          json.features.map((f) => ({
-            place_name: f.place_name,
-            lat: f.center[1],
-            lng: f.center[0],
-            city: f.context?.find((c) => c.id.startsWith("place") || c.id.startsWith("locality"))?.text ?? "",
-            state: f.context?.find((c) => c.id.startsWith("region"))?.text ?? "",
-          })),
-        );
-      } finally {
-        setLoading(false);
-      }
-    })(); }, 400);
-    return () => { if (timer.current) clearTimeout(timer.current); };
+    if (query.length < 3) {
+      setSuggestions([]);
+      return;
+    }
+    timer.current = setTimeout(() => {
+      void (async () => {
+        const token = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
+        if (!token) return;
+        setLoading(true);
+        try {
+          const res = await fetch(
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json` +
+              `?country=NG&types=address,place,locality,neighborhood&limit=5&access_token=${token}`,
+          );
+          const json = (await res.json()) as {
+            features: {
+              place_name: string;
+              center: [number, number];
+              context?: { id: string; text: string }[];
+            }[];
+          };
+          setSuggestions(
+            json.features.map((f) => ({
+              place_name: f.place_name,
+              lat: f.center[1],
+              lng: f.center[0],
+              city:
+                f.context?.find((c) => c.id.startsWith("place") || c.id.startsWith("locality"))
+                  ?.text ?? "",
+              state: f.context?.find((c) => c.id.startsWith("region"))?.text ?? "",
+            })),
+          );
+        } finally {
+          setLoading(false);
+        }
+      })();
+    }, 400);
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
   }, [query]);
 
   return { suggestions, loading };
@@ -278,12 +317,27 @@ function LocationStep({
   onBack: () => void;
 }) {
   const [query, setQuery] = useState(initial?.address ?? "");
-  const [selected, setSelected] = useState<Omit<WizardLocation, "contact_name" | "contact_phone" | "notes"> | null>(
-    initial ? { address: initial.address, city: initial.city, state: initial.state, lat: initial.lat, lng: initial.lng } : null,
+  const [selected, setSelected] = useState<Omit<
+    WizardLocation,
+    "contact_name" | "contact_phone" | "notes"
+  > | null>(
+    initial
+      ? {
+          address: initial.address,
+          city: initial.city,
+          state: initial.state,
+          lat: initial.lat,
+          lng: initial.lng,
+        }
+      : null,
   );
   const [showSugg, setShowSugg] = useState(false);
   const { suggestions, loading } = useGeocoder(query);
-  const { register, handleSubmit, formState: { errors } } = useForm<LocForm>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LocForm>({
     resolver: zodResolver(locSchema),
     defaultValues: {
       contact_name: initial?.contact_name ?? "",
@@ -293,8 +347,16 @@ function LocationStep({
   });
 
   const onSubmit = (data: LocForm) => {
-    if (!selected) { toast.error("Select an address from the list"); return; }
-    onNext({ ...selected, contact_name: data.contact_name, contact_phone: data.contact_phone, notes: data.notes ?? "" });
+    if (!selected) {
+      toast.error("Select an address from the list");
+      return;
+    }
+    onNext({
+      ...selected,
+      contact_name: data.contact_name,
+      contact_phone: data.contact_phone,
+      notes: data.notes ?? "",
+    });
   };
 
   return (
@@ -306,11 +368,17 @@ function LocationStep({
         <div className="relative">
           <Input
             value={query}
-            onChange={(e) => { setQuery(e.target.value); setSelected(null); setShowSugg(true); }}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setSelected(null);
+              setShowSugg(true);
+            }}
             onFocus={() => setShowSugg(true)}
             placeholder="Search Nigerian address…"
           />
-          {loading && <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
+          {loading && (
+            <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+          )}
           {showSugg && suggestions.length > 0 && (
             <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg">
               {suggestions.map((s, i) => (
@@ -320,7 +388,13 @@ function LocationStep({
                   className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
                   onClick={() => {
                     setQuery(s.place_name);
-                    setSelected({ address: s.place_name, city: s.city, state: s.state, lat: s.lat, lng: s.lng });
+                    setSelected({
+                      address: s.place_name,
+                      city: s.city,
+                      state: s.state,
+                      lat: s.lat,
+                      lng: s.lng,
+                    });
                     setShowSugg(false);
                   }}
                 >
@@ -332,9 +406,10 @@ function LocationStep({
           )}
         </div>
         {selected && (
-          <p className="text-xs text-green-600 flex items-center gap-1">
+          <p className="flex items-center gap-1 text-xs text-green-600">
             <CheckCircle2 className="h-3.5 w-3.5" />
-            {selected.city}{selected.state ? `, ${selected.state}` : ""}
+            {selected.city}
+            {selected.state ? `, ${selected.state}` : ""}
           </p>
         )}
         {!import.meta.env.VITE_MAPBOX_TOKEN && (
@@ -343,14 +418,22 @@ function LocationStep({
               placeholder="City"
               value={selected?.city ?? ""}
               onChange={(e) =>
-                setSelected((p) => p ? { ...p, city: e.target.value } : { address: query, city: e.target.value, state: "", lat: 6.5, lng: 3.4 })
+                setSelected((p) =>
+                  p
+                    ? { ...p, city: e.target.value }
+                    : { address: query, city: e.target.value, state: "", lat: 6.5, lng: 3.4 },
+                )
               }
             />
             <Input
               placeholder="State"
               value={selected?.state ?? ""}
               onChange={(e) =>
-                setSelected((p) => p ? { ...p, state: e.target.value } : { address: query, city: "", state: e.target.value, lat: 6.5, lng: 3.4 })
+                setSelected((p) =>
+                  p
+                    ? { ...p, state: e.target.value }
+                    : { address: query, city: "", state: e.target.value, lat: 6.5, lng: 3.4 },
+                )
               }
             />
           </div>
@@ -361,12 +444,16 @@ function LocationStep({
         <div className="space-y-1.5">
           <Label>Contact name *</Label>
           <Input {...register("contact_name")} />
-          {errors.contact_name && <p className="text-xs text-destructive">{errors.contact_name.message}</p>}
+          {errors.contact_name && (
+            <p className="text-xs text-destructive">{errors.contact_name.message}</p>
+          )}
         </div>
         <div className="space-y-1.5">
           <Label>Contact phone *</Label>
           <Input type="tel" {...register("contact_phone")} />
-          {errors.contact_phone && <p className="text-xs text-destructive">{errors.contact_phone.message}</p>}
+          {errors.contact_phone && (
+            <p className="text-xs text-destructive">{errors.contact_phone.message}</p>
+          )}
         </div>
       </div>
 
@@ -395,9 +482,23 @@ const cargoSchema = z.object({
 });
 type CargoForm = z.infer<typeof cargoSchema>;
 
-function CargoStep({ initial, onNext, onBack }: { initial: WizardCargo | null; onNext: (c: WizardCargo) => void; onBack: () => void }) {
+function CargoStep({
+  initial,
+  onNext,
+  onBack,
+}: {
+  initial: WizardCargo | null;
+  onNext: (c: WizardCargo) => void;
+  onBack: () => void;
+}) {
   const { cargoTypes, isLoading } = useCargoTypes();
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<CargoForm>({
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<CargoForm>({
     resolver: zodResolver(cargoSchema),
     defaultValues: {
       cargo_type_id: initial?.cargo_type_id ?? "",
@@ -411,17 +512,22 @@ function CargoStep({ initial, onNext, onBack }: { initial: WizardCargo | null; o
   if (isLoading) return <Skeleton className="h-48 w-full" />;
 
   return (
-    <form onSubmit={handleSubmit((d) => onNext({
-      cargo_type_id: d.cargo_type_id,
-      weight_kg: d.weight_kg,
-      length_cm: d.length_cm ?? null,
-      width_cm: d.width_cm ?? null,
-      height_cm: d.height_cm ?? null,
-      special_instructions: d.special_instructions ?? "",
-      is_fragile: d.is_fragile,
-      is_hazardous: d.is_hazardous,
-      is_express: d.is_express,
-    }))} className="space-y-4">
+    <form
+      onSubmit={handleSubmit((d) =>
+        onNext({
+          cargo_type_id: d.cargo_type_id,
+          weight_kg: d.weight_kg,
+          length_cm: d.length_cm ?? null,
+          width_cm: d.width_cm ?? null,
+          height_cm: d.height_cm ?? null,
+          special_instructions: d.special_instructions ?? "",
+          is_fragile: d.is_fragile,
+          is_hazardous: d.is_hazardous,
+          is_express: d.is_express,
+        }),
+      )}
+      className="space-y-4"
+    >
       <h2 className="text-lg font-semibold">Cargo details</h2>
 
       <div className="space-y-1.5">
@@ -438,7 +544,9 @@ function CargoStep({ initial, onNext, onBack }: { initial: WizardCargo | null; o
             </button>
           ))}
         </div>
-        {errors.cargo_type_id && <p className="text-xs text-destructive">{errors.cargo_type_id.message}</p>}
+        {errors.cargo_type_id && (
+          <p className="text-xs text-destructive">{errors.cargo_type_id.message}</p>
+        )}
       </div>
 
       <div className="space-y-1.5">
@@ -455,7 +563,7 @@ function CargoStep({ initial, onNext, onBack }: { initial: WizardCargo | null; o
 
       <div className="flex flex-wrap gap-4">
         {(["is_fragile", "is_hazardous", "is_express"] as const).map((f) => (
-          <label key={f} className="flex items-center gap-2 text-sm cursor-pointer">
+          <label key={f} className="flex cursor-pointer items-center gap-2 text-sm">
             <Checkbox checked={watch(f)} onCheckedChange={(v) => setValue(f, !!v)} />
             {f === "is_fragile" ? "Fragile" : f === "is_hazardous" ? "Hazardous" : "Express"}
           </label>
@@ -474,7 +582,15 @@ function CargoStep({ initial, onNext, onBack }: { initial: WizardCargo | null; o
 
 // ── Vehicle step ───────────────────────────────────────────────────────────────
 
-function VehicleStep({ initial, onNext, onBack }: { initial: string | null; onNext: (id: string) => void; onBack: () => void }) {
+function VehicleStep({
+  initial,
+  onNext,
+  onBack,
+}: {
+  initial: string | null;
+  onNext: (id: string) => void;
+  onBack: () => void;
+}) {
   const { vehicleTypes, isLoading } = useVehicleTypes();
   const [sel, setSel] = useState<string | null>(initial);
 
@@ -493,7 +609,9 @@ function VehicleStep({ initial, onNext, onBack }: { initial: string | null; onNe
           >
             {vt.icon && <span className="text-xl">{vt.icon}</span>}
             <p className="font-medium">{vt.name}</p>
-            <p className="text-xs text-muted-foreground">{vt.min_capacity_kg}–{vt.max_capacity_kg} kg</p>
+            <p className="text-xs text-muted-foreground">
+              {vt.min_capacity_kg}–{vt.max_capacity_kg} kg
+            </p>
           </button>
         ))}
       </div>
@@ -504,13 +622,27 @@ function VehicleStep({ initial, onNext, onBack }: { initial: string | null; onNe
 
 // ── Schedule step ──────────────────────────────────────────────────────────────
 
-function ScheduleStep({ initial, onNext, onBack }: { initial: string | null; onNext: (at: string | null) => void; onBack: () => void }) {
+function ScheduleStep({
+  initial,
+  onNext,
+  onBack,
+}: {
+  initial: string | null;
+  onNext: (at: string | null) => void;
+  onBack: () => void;
+}) {
   const [type, setType] = useState<"asap" | "scheduled">(initial ? "scheduled" : "asap");
   const [dt, setDt] = useState(initial ?? "");
 
   const go = () => {
-    if (type === "asap") { onNext(null); return; }
-    if (!dt) { toast.error("Select a date and time"); return; }
+    if (type === "asap") {
+      onNext(null);
+      return;
+    }
+    if (!dt) {
+      toast.error("Select a date and time");
+      return;
+    }
     onNext(dt);
   };
 
@@ -522,15 +654,23 @@ function ScheduleStep({ initial, onNext, onBack }: { initial: string | null; onN
           { v: "asap" as const, label: "As soon as possible" },
           { v: "scheduled" as const, label: "Specific date & time" },
         ].map((o) => (
-          <button key={o.v} type="button" onClick={() => setType(o.v)}
-            className={`rounded-md border p-4 text-left transition-colors ${type === o.v ? "border-primary bg-primary/5" : "hover:bg-muted"}`}>
+          <button
+            key={o.v}
+            type="button"
+            onClick={() => setType(o.v)}
+            className={`rounded-md border p-4 text-left transition-colors ${type === o.v ? "border-primary bg-primary/5" : "hover:bg-muted"}`}
+          >
             <p className="font-medium">{o.label}</p>
           </button>
         ))}
       </div>
       {type === "scheduled" && (
-        <Input type="datetime-local" value={dt} onChange={(e) => setDt(e.target.value)}
-          min={new Date().toISOString().slice(0, 16)} />
+        <Input
+          type="datetime-local"
+          value={dt}
+          onChange={(e) => setDt(e.target.value)}
+          min={new Date().toISOString().slice(0, 16)}
+        />
       )}
       <Nav onBack={onBack} onNext={go} />
     </div>
@@ -566,14 +706,19 @@ function ReviewSubmitStep({
     setQuoteError(null);
     try {
       const isNight = state.scheduled_at
-        ? new Date(state.scheduled_at).getHours() >= 20 || new Date(state.scheduled_at).getHours() < 6
+        ? new Date(state.scheduled_at).getHours() >= 20 ||
+          new Date(state.scheduled_at).getHours() < 6
         : false;
       const { data, error } = await supabase.functions.invoke<QuoteBreakdown>("calculate-quote", {
         body: {
-          pickup_lat: state.pickup.lat, pickup_lng: state.pickup.lng,
-          pickup_state: state.pickup.state, pickup_city: state.pickup.city,
-          dest_lat: state.destination.lat, dest_lng: state.destination.lng,
-          dest_state: state.destination.state, dest_city: state.destination.city,
+          pickup_lat: state.pickup.lat,
+          pickup_lng: state.pickup.lng,
+          pickup_state: state.pickup.state,
+          pickup_city: state.pickup.city,
+          dest_lat: state.destination.lat,
+          dest_lng: state.destination.lng,
+          dest_state: state.destination.state,
+          dest_city: state.destination.city,
           weight_kg: state.cargo.weight_kg,
           cargo_type_id: state.cargo.cargo_type_id || null,
           vehicle_type_id: state.vehicle_type_id || null,
@@ -593,20 +738,34 @@ function ReviewSubmitStep({
     }
   }, [state]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (!quote) void fetchQuote(); }, []);
+  useEffect(() => {
+    if (!quote) void fetchQuote();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async () => {
     if (!state.customer || !state.pickup || !state.destination || !state.cargo || !quote) return;
     setIsSubmitting(true);
     try {
       const pickupJson = {
-        address: { label: "Pickup", line1: state.pickup.address, city: state.pickup.city, state: state.pickup.state, geo: { lat: state.pickup.lat, lng: state.pickup.lng } },
+        address: {
+          label: "Pickup",
+          line1: state.pickup.address,
+          city: state.pickup.city,
+          state: state.pickup.state,
+          geo: { lat: state.pickup.lat, lng: state.pickup.lng },
+        },
         contact: { name: state.pickup.contact_name, phone: state.pickup.contact_phone },
         notes: state.pickup.notes || undefined,
       };
       const destJson = {
-        address: { label: "Destination", line1: state.destination.address, city: state.destination.city, state: state.destination.state, geo: { lat: state.destination.lat, lng: state.destination.lng } },
+        address: {
+          label: "Destination",
+          line1: state.destination.address,
+          city: state.destination.city,
+          state: state.destination.state,
+          geo: { lat: state.destination.lat, lng: state.destination.lng },
+        },
         contact: { name: state.destination.contact_name, phone: state.destination.contact_phone },
         notes: state.destination.notes || undefined,
       };
@@ -626,15 +785,23 @@ function ReviewSubmitStep({
           scheduled_at: state.scheduled_at,
           special_instructions: state.cargo.special_instructions || null,
           status: "REQUESTED" as const,
-          order_id: null, driver_id: null, vehicle_id: null, eta: null, photos: [],
+          order_id: null,
+          driver_id: null,
+          vehicle_id: null,
+          eta: null,
+          photos: [],
         })
         .select()
         .single();
       if (shipErr) throw shipErr;
 
       const surcharges =
-        quote.cargo_surcharge + quote.area_surcharge + quote.night_surcharge +
-        quote.express_surcharge + quote.fragile_surcharge + quote.hazardous_surcharge;
+        quote.cargo_surcharge +
+        quote.area_surcharge +
+        quote.night_surcharge +
+        quote.express_surcharge +
+        quote.fragile_surcharge +
+        quote.hazardous_surcharge;
 
       const { data: order, error: orderErr } = await supabase
         .from("orders")
@@ -654,15 +821,61 @@ function ReviewSubmitStep({
 
       const items = [
         { order_id: order.id, label: "Base fare", qty: 1, unit_price: quote.base_fare },
-        { order_id: order.id, label: `Distance charge (${quote.distance_km} km)`, qty: 1, unit_price: quote.distance_charge },
-        { order_id: order.id, label: `Weight charge (${state.cargo.weight_kg} kg)`, qty: 1, unit_price: quote.weight_charge },
+        {
+          order_id: order.id,
+          label: `Distance charge (${quote.distance_km} km)`,
+          qty: 1,
+          unit_price: quote.distance_charge,
+        },
+        {
+          order_id: order.id,
+          label: `Weight charge (${state.cargo.weight_kg} kg)`,
+          qty: 1,
+          unit_price: quote.weight_charge,
+        },
       ];
-      if (quote.cargo_surcharge > 0) items.push({ order_id: order.id, label: "Cargo surcharge", qty: 1, unit_price: quote.cargo_surcharge });
-      if (quote.area_surcharge > 0) items.push({ order_id: order.id, label: "Area surcharge", qty: 1, unit_price: quote.area_surcharge });
-      if (quote.express_surcharge > 0) items.push({ order_id: order.id, label: "Express surcharge", qty: 1, unit_price: quote.express_surcharge });
-      if (quote.night_surcharge > 0) items.push({ order_id: order.id, label: "Night surcharge", qty: 1, unit_price: quote.night_surcharge });
-      if (quote.fragile_surcharge > 0) items.push({ order_id: order.id, label: "Fragile handling", qty: 1, unit_price: quote.fragile_surcharge });
-      if (quote.hazardous_surcharge > 0) items.push({ order_id: order.id, label: "Hazardous handling", qty: 1, unit_price: quote.hazardous_surcharge });
+      if (quote.cargo_surcharge > 0)
+        items.push({
+          order_id: order.id,
+          label: "Cargo surcharge",
+          qty: 1,
+          unit_price: quote.cargo_surcharge,
+        });
+      if (quote.area_surcharge > 0)
+        items.push({
+          order_id: order.id,
+          label: "Area surcharge",
+          qty: 1,
+          unit_price: quote.area_surcharge,
+        });
+      if (quote.express_surcharge > 0)
+        items.push({
+          order_id: order.id,
+          label: "Express surcharge",
+          qty: 1,
+          unit_price: quote.express_surcharge,
+        });
+      if (quote.night_surcharge > 0)
+        items.push({
+          order_id: order.id,
+          label: "Night surcharge",
+          qty: 1,
+          unit_price: quote.night_surcharge,
+        });
+      if (quote.fragile_surcharge > 0)
+        items.push({
+          order_id: order.id,
+          label: "Fragile handling",
+          qty: 1,
+          unit_price: quote.fragile_surcharge,
+        });
+      if (quote.hazardous_surcharge > 0)
+        items.push({
+          order_id: order.id,
+          label: "Hazardous handling",
+          qty: 1,
+          unit_price: quote.hazardous_surcharge,
+        });
       items.push({ order_id: order.id, label: "Tax", qty: 1, unit_price: quote.tax });
       await supabase.from("order_items").insert(items);
 
@@ -676,7 +889,15 @@ function ReviewSubmitStep({
   };
 
   const EditBtn = ({ step }: { step: number }) => (
-    <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => onEdit(step)}>Edit</Button>
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      className="h-6 px-2 text-xs"
+      onClick={() => onEdit(step)}
+    >
+      Edit
+    </Button>
   );
 
   return (
@@ -684,58 +905,74 @@ function ReviewSubmitStep({
       <h2 className="text-lg font-semibold">Review & submit</h2>
 
       {/* Customer */}
-      <div className="rounded-md border p-3 space-y-1">
+      <div className="space-y-1 rounded-md border p-3">
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium">Customer</p>
           <EditBtn step={1} />
         </div>
-        <p className="text-sm text-muted-foreground">{state.customer?.name} · {state.customer?.phone}</p>
+        <p className="text-sm text-muted-foreground">
+          {state.customer?.name} · {state.customer?.phone}
+        </p>
       </div>
 
       {/* Pickup */}
-      <div className="rounded-md border p-3 space-y-1">
+      <div className="space-y-1 rounded-md border p-3">
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium">Pickup</p>
           <EditBtn step={2} />
         </div>
         <p className="text-sm text-muted-foreground">{state.pickup?.address}</p>
-        <p className="text-xs text-muted-foreground">Contact: {state.pickup?.contact_name} · {state.pickup?.contact_phone}</p>
+        <p className="text-xs text-muted-foreground">
+          Contact: {state.pickup?.contact_name} · {state.pickup?.contact_phone}
+        </p>
       </div>
 
       {/* Destination */}
-      <div className="rounded-md border p-3 space-y-1">
+      <div className="space-y-1 rounded-md border p-3">
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium">Destination</p>
           <EditBtn step={3} />
         </div>
         <p className="text-sm text-muted-foreground">{state.destination?.address}</p>
-        <p className="text-xs text-muted-foreground">Contact: {state.destination?.contact_name} · {state.destination?.contact_phone}</p>
+        <p className="text-xs text-muted-foreground">
+          Contact: {state.destination?.contact_name} · {state.destination?.contact_phone}
+        </p>
       </div>
 
       {/* Cargo */}
-      <div className="rounded-md border p-3 space-y-1">
+      <div className="space-y-1 rounded-md border p-3">
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium">Cargo</p>
           <EditBtn step={4} />
         </div>
-        <p className="text-sm text-muted-foreground">{cargoName} · {state.cargo?.weight_kg} kg</p>
+        <p className="text-sm text-muted-foreground">
+          {cargoName} · {state.cargo?.weight_kg} kg
+        </p>
         <div className="flex flex-wrap gap-1">
-          {state.cargo?.is_fragile && <Badge variant="warning" className="text-xs">Fragile</Badge>}
-          {state.cargo?.is_hazardous && <Badge variant="destructive" className="text-xs">Hazardous</Badge>}
+          {state.cargo?.is_fragile && (
+            <Badge variant="warning" className="text-xs">
+              Fragile
+            </Badge>
+          )}
+          {state.cargo?.is_hazardous && (
+            <Badge variant="destructive" className="text-xs">
+              Hazardous
+            </Badge>
+          )}
           {state.cargo?.is_express && <Badge className="text-xs">Express</Badge>}
         </div>
       </div>
 
       {/* Vehicle + schedule */}
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-md border p-3 space-y-1">
+        <div className="space-y-1 rounded-md border p-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium">Vehicle</p>
             <EditBtn step={5} />
           </div>
           <p className="text-sm text-muted-foreground">{vehicleName}</p>
         </div>
-        <div className="rounded-md border p-3 space-y-1">
+        <div className="space-y-1 rounded-md border p-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium">Schedule</p>
             <EditBtn step={6} />
@@ -754,26 +991,68 @@ function ReviewSubmitStep({
         </div>
       )}
       {quoteError && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive space-y-2">
+        <div className="space-y-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
           <p>{quoteError}</p>
-          <Button variant="outline" size="sm" onClick={() => void fetchQuote()}>Retry</Button>
+          <Button variant="outline" size="sm" onClick={() => void fetchQuote()}>
+            Retry
+          </Button>
         </div>
       )}
       {quote && !quoteLoading && (
         <Card>
-          <CardContent className="pt-4 space-y-1.5 text-sm">
-            <div className="flex justify-between"><span className="text-muted-foreground">Base fare</span><span>{fmt(quote.base_fare)}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Distance ({quote.distance_km} km)</span><span>{fmt(quote.distance_charge)}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Weight ({state.cargo?.weight_kg} kg)</span><span>{fmt(quote.weight_charge)}</span></div>
-            {quote.cargo_surcharge > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Cargo surcharge</span><span>{fmt(quote.cargo_surcharge)}</span></div>}
-            {quote.area_surcharge > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Area surcharge</span><span>{fmt(quote.area_surcharge)}</span></div>}
-            {quote.express_surcharge > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Express</span><span>{fmt(quote.express_surcharge)}</span></div>}
-            {quote.night_surcharge > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Night</span><span>{fmt(quote.night_surcharge)}</span></div>}
+          <CardContent className="space-y-1.5 pt-4 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Base fare</span>
+              <span>{fmt(quote.base_fare)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Distance ({quote.distance_km} km)</span>
+              <span>{fmt(quote.distance_charge)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Weight ({state.cargo?.weight_kg} kg)</span>
+              <span>{fmt(quote.weight_charge)}</span>
+            </div>
+            {quote.cargo_surcharge > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Cargo surcharge</span>
+                <span>{fmt(quote.cargo_surcharge)}</span>
+              </div>
+            )}
+            {quote.area_surcharge > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Area surcharge</span>
+                <span>{fmt(quote.area_surcharge)}</span>
+              </div>
+            )}
+            {quote.express_surcharge > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Express</span>
+                <span>{fmt(quote.express_surcharge)}</span>
+              </div>
+            )}
+            {quote.night_surcharge > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Night</span>
+                <span>{fmt(quote.night_surcharge)}</span>
+              </div>
+            )}
             <Separator />
-            <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{fmt(quote.subtotal)}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Tax ({(quote.tax_rate * 100).toFixed(1)}%)</span><span>{fmt(quote.tax)}</span></div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Subtotal</span>
+              <span>{fmt(quote.subtotal)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">
+                Tax ({(quote.tax_rate * 100).toFixed(1)}%)
+              </span>
+              <span>{fmt(quote.tax)}</span>
+            </div>
             <Separator />
-            <div className="flex justify-between font-semibold"><span>Total</span><span>{fmt(quote.total)}</span></div>
+            <div className="flex justify-between font-semibold">
+              <span>Total</span>
+              <span>{fmt(quote.total)}</span>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -807,9 +1086,18 @@ function Nav({
   return (
     <div className="flex items-center justify-between pt-2">
       {onBack ? (
-        <Button type="button" variant="ghost" onClick={onBack}><ArrowLeft className="h-4 w-4" />Back</Button>
-      ) : <div />}
-      <Button type={onNext ? "button" : "submit"} onClick={onNext} disabled={nextDisabled || isSubmitting}>
+        <Button type="button" variant="ghost" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Button>
+      ) : (
+        <div />
+      )}
+      <Button
+        type={onNext ? "button" : "submit"}
+        onClick={onNext}
+        disabled={nextDisabled || isSubmitting}
+      >
         {isSubmitting && <Loader2 className="animate-spin" />}
         {nextLabel}
         {!isSubmitting && !nextDisabled && <ArrowRight className="h-4 w-4" />}
@@ -841,11 +1129,21 @@ function StepProgress({ current }: { current: number }) {
           const Icon = s.icon;
           return (
             <div key={n} className="flex items-center">
-              <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium ${done ? "bg-primary text-primary-foreground" : active ? "border-2 border-primary text-primary" : "border border-muted-foreground/30 text-muted-foreground"}`}>
+              <div
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium ${done ? "bg-primary text-primary-foreground" : active ? "border-2 border-primary text-primary" : "border border-muted-foreground/30 text-muted-foreground"}`}
+              >
                 {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
               </div>
-              <span className={`hidden sm:inline ml-1 text-xs ${active ? "font-medium text-foreground" : "text-muted-foreground"}`}>{s.label}</span>
-              {i < STEPS.length - 1 && <div className={`mx-2 h-px w-5 ${done ? "bg-primary" : "bg-muted-foreground/20"}`} />}
+              <span
+                className={`ml-1 hidden text-xs sm:inline ${active ? "font-medium text-foreground" : "text-muted-foreground"}`}
+              >
+                {s.label}
+              </span>
+              {i < STEPS.length - 1 && (
+                <div
+                  className={`mx-2 h-px w-5 ${done ? "bg-primary" : "bg-muted-foreground/20"}`}
+                />
+              )}
             </div>
           );
         })}

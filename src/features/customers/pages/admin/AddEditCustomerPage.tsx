@@ -8,13 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { supabase } from "@/lib/supabase";
 import { useCustomer } from "@/features/customers/hooks/useCustomer";
@@ -67,8 +61,14 @@ export function AddEditCustomerPage() {
           .update({ company: data.company ?? null })
           .eq("id", id!),
       ]);
-      if (profileRes.error) { toast.error(profileRes.error.message); return; }
-      if (customerRes.error) { toast.error(customerRes.error.message); return; }
+      if (profileRes.error) {
+        toast.error(profileRes.error.message);
+        return;
+      }
+      if (customerRes.error) {
+        toast.error(customerRes.error.message);
+        return;
+      }
       toast.success("Customer updated");
       navigate(`/admin/customers/${id}`);
       return;
@@ -152,7 +152,9 @@ export function AddEditCustomerPage() {
         title={isEdit ? "Edit Customer" : "Add Customer"}
         breadcrumbs={[
           { label: "Customers", href: "/admin/customers" },
-          ...(isEdit ? [{ label: customer?.profile.name ?? "…", href: `/admin/customers/${id}` }] : []),
+          ...(isEdit
+            ? [{ label: customer?.profile.name ?? "…", href: `/admin/customers/${id}` }]
+            : []),
           { label: isEdit ? "Edit" : "Add" },
         ]}
       />
@@ -178,9 +180,7 @@ export function AddEditCustomerPage() {
               <div className="space-y-1.5">
                 <Label>Email address *</Label>
                 <Input type="email" {...register("email")} placeholder="customer@example.com" />
-                {errors.email && (
-                  <p className="text-xs text-destructive">{errors.email.message}</p>
-                )}
+                {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
               </div>
             )}
 

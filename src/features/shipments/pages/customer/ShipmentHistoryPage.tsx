@@ -24,9 +24,15 @@ function cityFrom(loc: unknown): string {
 }
 
 const ACTIVE: ShipmentStatus[] = [
-  "REQUESTED", "REVIEWED", "ASSIGNED", "ACCEPTED",
-  "EN_ROUTE_TO_PICKUP", "ARRIVED_AT_PICKUP", "PICKED_UP",
-  "IN_TRANSIT", "ARRIVED_AT_DESTINATION",
+  "REQUESTED",
+  "REVIEWED",
+  "ASSIGNED",
+  "ACCEPTED",
+  "EN_ROUTE_TO_PICKUP",
+  "ARRIVED_AT_PICKUP",
+  "PICKED_UP",
+  "IN_TRANSIT",
+  "ARRIVED_AT_DESTINATION",
 ];
 
 export function ShipmentHistoryPage() {
@@ -66,8 +72,14 @@ export function ShipmentHistoryPage() {
     const matchesTab =
       tab === "all" ||
       (tab === "active" && ACTIVE.includes(s.status as ShipmentStatus)) ||
-      (tab === "completed" && (["DELIVERED", "VERIFIED", "PAID", "CLOSED"] as ShipmentStatus[]).includes(s.status as ShipmentStatus)) ||
-      (tab === "cancelled" && (["CANCELLED", "FAILED", "RETURNED"] as ShipmentStatus[]).includes(s.status as ShipmentStatus));
+      (tab === "completed" &&
+        (["DELIVERED", "VERIFIED", "PAID", "CLOSED"] as ShipmentStatus[]).includes(
+          s.status as ShipmentStatus,
+        )) ||
+      (tab === "cancelled" &&
+        (["CANCELLED", "FAILED", "RETURNED"] as ShipmentStatus[]).includes(
+          s.status as ShipmentStatus,
+        ));
 
     return matchesSearch && matchesTab;
   });
@@ -75,8 +87,16 @@ export function ShipmentHistoryPage() {
   const counts = {
     all: shipments.length,
     active: shipments.filter((s) => ACTIVE.includes(s.status as ShipmentStatus)).length,
-    completed: shipments.filter((s) => (["DELIVERED", "VERIFIED", "PAID", "CLOSED"] as ShipmentStatus[]).includes(s.status as ShipmentStatus)).length,
-    cancelled: shipments.filter((s) => (["CANCELLED", "FAILED", "RETURNED"] as ShipmentStatus[]).includes(s.status as ShipmentStatus)).length,
+    completed: shipments.filter((s) =>
+      (["DELIVERED", "VERIFIED", "PAID", "CLOSED"] as ShipmentStatus[]).includes(
+        s.status as ShipmentStatus,
+      ),
+    ).length,
+    cancelled: shipments.filter((s) =>
+      (["CANCELLED", "FAILED", "RETURNED"] as ShipmentStatus[]).includes(
+        s.status as ShipmentStatus,
+      ),
+    ).length,
   };
 
   const renderList = (list: ShipmentRow[]) => {

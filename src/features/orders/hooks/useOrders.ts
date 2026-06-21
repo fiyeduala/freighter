@@ -11,16 +11,10 @@ export function useOrders(filter?: { payment_status?: string }) {
   const { data = [], isLoading } = useQuery({
     queryKey: ["orders", filter],
     queryFn: async () => {
-      let query = supabase
-        .from("orders")
-        .select("*")
-        .order("created_at", { ascending: false });
+      let query = supabase.from("orders").select("*").order("created_at", { ascending: false });
 
       if (filter?.payment_status && filter.payment_status !== "all") {
-        query = query.eq(
-          "payment_status",
-          filter.payment_status as OrderRow["payment_status"],
-        );
+        query = query.eq("payment_status", filter.payment_status as OrderRow["payment_status"]);
       }
 
       const { data: orders, error } = await query;
@@ -40,7 +34,9 @@ export function useOrders(filter?: { payment_status?: string }) {
               .from("shipments")
               .select("id, status, pickup, destination")
               .in("id", shipmentIds)
-          : Promise.resolve({ data: [] as { id: string; status: string; pickup: unknown; destination: unknown }[] }),
+          : Promise.resolve({
+              data: [] as { id: string; status: string; pickup: unknown; destination: unknown }[],
+            }),
       ]);
 
       const custMap = new Map(

@@ -153,41 +153,48 @@ function useGeocoder(query: string) {
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    if (query.length < 3) { setSuggestions([]); return; }
+    if (query.length < 3) {
+      setSuggestions([]);
+      return;
+    }
 
-    timerRef.current = setTimeout(() => { void (async () => {
-      const token = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
-      if (!token) return;
-      setLoading(true);
-      try {
-        const res = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json` +
-            `?country=NG&types=address,place,locality,neighborhood&limit=5&access_token=${token}`,
-        );
-        const json = (await res.json()) as {
-          features: {
-            place_name: string;
-            center: [number, number];
-            context?: { id: string; text: string }[];
-          }[];
-        };
-        setSuggestions(
-          json.features.map((f) => ({
-            place_name: f.place_name,
-            lat: f.center[1],
-            lng: f.center[0],
-            city:
-              f.context?.find((c) => c.id.startsWith("place") || c.id.startsWith("locality"))
-                ?.text ?? "",
-            state: f.context?.find((c) => c.id.startsWith("region"))?.text ?? "",
-          })),
-        );
-      } finally {
-        setLoading(false);
-      }
-    })(); }, 400);
+    timerRef.current = setTimeout(() => {
+      void (async () => {
+        const token = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
+        if (!token) return;
+        setLoading(true);
+        try {
+          const res = await fetch(
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json` +
+              `?country=NG&types=address,place,locality,neighborhood&limit=5&access_token=${token}`,
+          );
+          const json = (await res.json()) as {
+            features: {
+              place_name: string;
+              center: [number, number];
+              context?: { id: string; text: string }[];
+            }[];
+          };
+          setSuggestions(
+            json.features.map((f) => ({
+              place_name: f.place_name,
+              lat: f.center[1],
+              lng: f.center[0],
+              city:
+                f.context?.find((c) => c.id.startsWith("place") || c.id.startsWith("locality"))
+                  ?.text ?? "",
+              state: f.context?.find((c) => c.id.startsWith("region"))?.text ?? "",
+            })),
+          );
+        } finally {
+          setLoading(false);
+        }
+      })();
+    }, 400);
 
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, [query]);
 
   return { suggestions, loading };
@@ -216,13 +223,28 @@ function LocationStep({
   onBack?: () => void;
 }) {
   const [query, setQuery] = useState(initial?.address ?? "");
-  const [selected, setSelected] = useState<Omit<WizardLocation, "contact_name" | "contact_phone" | "notes"> | null>(
-    initial ? { address: initial.address, city: initial.city, state: initial.state, lat: initial.lat, lng: initial.lng } : null,
+  const [selected, setSelected] = useState<Omit<
+    WizardLocation,
+    "contact_name" | "contact_phone" | "notes"
+  > | null>(
+    initial
+      ? {
+          address: initial.address,
+          city: initial.city,
+          state: initial.state,
+          lat: initial.lat,
+          lng: initial.lng,
+        }
+      : null,
   );
   const [showSuggestions, setShowSuggestions] = useState(false);
   const { suggestions, loading } = useGeocoder(query);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LocationForm>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LocationForm>({
     resolver: zodResolver(locationSchema),
     defaultValues: {
       contact_name: initial?.contact_name ?? "",
@@ -232,8 +254,16 @@ function LocationStep({
   });
 
   const onSubmit = (data: LocationForm) => {
-    if (!selected) { toast.error("Please search and select an address"); return; }
-    onNext({ ...selected, contact_name: data.contact_name, contact_phone: data.contact_phone, notes: data.notes ?? "" });
+    if (!selected) {
+      toast.error("Please search and select an address");
+      return;
+    }
+    onNext({
+      ...selected,
+      contact_name: data.contact_name,
+      contact_phone: data.contact_phone,
+      notes: data.notes ?? "",
+    });
   };
 
   return (
@@ -248,7 +278,11 @@ function LocationStep({
         <div className="relative">
           <Input
             value={query}
-            onChange={(e) => { setQuery(e.target.value); setSelected(null); setShowSuggestions(true); }}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setSelected(null);
+              setShowSuggestions(true);
+            }}
             onFocus={() => setShowSuggestions(true)}
             placeholder="Start typing a Nigerian address…"
           />
@@ -264,7 +298,13 @@ function LocationStep({
                   className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
                   onClick={() => {
                     setQuery(s.place_name);
-                    setSelected({ address: s.place_name, city: s.city, state: s.state, lat: s.lat, lng: s.lng });
+                    setSelected({
+                      address: s.place_name,
+                      city: s.city,
+                      state: s.state,
+                      lat: s.lat,
+                      lng: s.lng,
+                    });
                     setShowSuggestions(false);
                   }}
                 >
@@ -276,13 +316,17 @@ function LocationStep({
           )}
         </div>
         {selected && (
-          <p className="text-xs text-green-600 flex items-center gap-1">
+          <p className="flex items-center gap-1 text-xs text-green-600">
             <CheckCircle2 className="h-3.5 w-3.5" />
-            {selected.city}{selected.state ? `, ${selected.state}` : ""}
+            {selected.city}
+            {selected.state ? `, ${selected.state}` : ""}
           </p>
         )}
         {!import.meta.env.VITE_MAPBOX_TOKEN && (
-          <p className="text-xs text-amber-600">Geocoding unavailable (no Mapbox token). Type your full address and fill lat/lng manually.</p>
+          <p className="text-xs text-amber-600">
+            Geocoding unavailable (no Mapbox token). Type your full address and fill lat/lng
+            manually.
+          </p>
         )}
       </div>
 
@@ -292,7 +336,13 @@ function LocationStep({
             <Label className="text-xs">City</Label>
             <Input
               value={selected?.city ?? ""}
-              onChange={(e) => setSelected((p) => p ? { ...p, city: e.target.value } : { address: query, city: e.target.value, state: "", lat: 6.5244, lng: 3.3792 })}
+              onChange={(e) =>
+                setSelected((p) =>
+                  p
+                    ? { ...p, city: e.target.value }
+                    : { address: query, city: e.target.value, state: "", lat: 6.5244, lng: 3.3792 },
+                )
+              }
               placeholder="Lagos"
             />
           </div>
@@ -300,7 +350,13 @@ function LocationStep({
             <Label className="text-xs">State</Label>
             <Input
               value={selected?.state ?? ""}
-              onChange={(e) => setSelected((p) => p ? { ...p, state: e.target.value } : { address: query, city: "", state: e.target.value, lat: 6.5244, lng: 3.3792 })}
+              onChange={(e) =>
+                setSelected((p) =>
+                  p
+                    ? { ...p, state: e.target.value }
+                    : { address: query, city: "", state: e.target.value, lat: 6.5244, lng: 3.3792 },
+                )
+              }
               placeholder="Lagos"
             />
           </div>
@@ -311,18 +367,26 @@ function LocationStep({
         <div className="space-y-1.5">
           <Label>Contact name *</Label>
           <Input {...register("contact_name")} placeholder="Person at location" />
-          {errors.contact_name && <p className="text-xs text-destructive">{errors.contact_name.message}</p>}
+          {errors.contact_name && (
+            <p className="text-xs text-destructive">{errors.contact_name.message}</p>
+          )}
         </div>
         <div className="space-y-1.5">
           <Label>Contact phone *</Label>
           <Input type="tel" {...register("contact_phone")} placeholder="+234 800 000 0000" />
-          {errors.contact_phone && <p className="text-xs text-destructive">{errors.contact_phone.message}</p>}
+          {errors.contact_phone && (
+            <p className="text-xs text-destructive">{errors.contact_phone.message}</p>
+          )}
         </div>
       </div>
 
       <div className="space-y-1.5">
         <Label>Notes (optional)</Label>
-        <Textarea {...register("notes")} placeholder="Access instructions, landmark, etc." rows={2} />
+        <Textarea
+          {...register("notes")}
+          placeholder="Access instructions, landmark, etc."
+          rows={2}
+        />
       </div>
 
       <WizardNav onBack={onBack} />
@@ -345,9 +409,23 @@ const cargoSchema = z.object({
 });
 type CargoForm = z.infer<typeof cargoSchema>;
 
-function CargoStep({ initial, onNext, onBack }: { initial: WizardCargo | null; onNext: (c: WizardCargo) => void; onBack: () => void }) {
+function CargoStep({
+  initial,
+  onNext,
+  onBack,
+}: {
+  initial: WizardCargo | null;
+  onNext: (c: WizardCargo) => void;
+  onBack: () => void;
+}) {
   const { cargoTypes, isLoading } = useCargoTypes();
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<CargoForm>({
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<CargoForm>({
     resolver: zodResolver(cargoSchema),
     defaultValues: {
       cargo_type_id: initial?.cargo_type_id ?? "",
@@ -402,13 +480,21 @@ function CargoStep({ initial, onNext, onBack }: { initial: WizardCargo | null; o
                 className={`rounded-md border p-3 text-left text-sm transition-colors ${selected ? "border-primary bg-primary/5" : "hover:bg-muted"}`}
               >
                 <p className="font-medium">{ct.name}</p>
-                {ct.handling_rules && <p className="mt-0.5 text-xs text-muted-foreground">{ct.handling_rules}</p>}
+                {ct.handling_rules && (
+                  <p className="mt-0.5 text-xs text-muted-foreground">{ct.handling_rules}</p>
+                )}
               </button>
             );
           })}
-          {cargoTypes.length === 0 && <p className="col-span-2 text-sm text-muted-foreground">No cargo types configured. Ask an admin to add them in Settings.</p>}
+          {cargoTypes.length === 0 && (
+            <p className="col-span-2 text-sm text-muted-foreground">
+              No cargo types configured. Ask an admin to add them in Settings.
+            </p>
+          )}
         </div>
-        {errors.cargo_type_id && <p className="text-xs text-destructive">{errors.cargo_type_id.message}</p>}
+        {errors.cargo_type_id && (
+          <p className="text-xs text-destructive">{errors.cargo_type_id.message}</p>
+        )}
       </div>
 
       <div className="space-y-1.5">
@@ -433,10 +519,22 @@ function CargoStep({ initial, onNext, onBack }: { initial: WizardCargo | null; o
       </div>
 
       <div className="flex flex-wrap gap-4">
-        {([["is_fragile", "Fragile"], ["is_hazardous", "Hazardous"], ["is_express", "Express delivery"]] as const).map(([field, label]) => (
-          <label key={field} className="flex items-center gap-2 text-sm cursor-pointer">
+        {(
+          [
+            ["is_fragile", "Fragile"],
+            ["is_hazardous", "Hazardous"],
+            ["is_express", "Express delivery"],
+          ] as const
+        ).map(([field, label]) => (
+          <label key={field} className="flex cursor-pointer items-center gap-2 text-sm">
             <Checkbox
-              checked={field === "is_fragile" ? isFragile : field === "is_hazardous" ? isHazardous : isExpress}
+              checked={
+                field === "is_fragile"
+                  ? isFragile
+                  : field === "is_hazardous"
+                    ? isHazardous
+                    : isExpress
+              }
               onCheckedChange={(v) => setValue(field, !!v)}
             />
             {label}
@@ -446,7 +544,11 @@ function CargoStep({ initial, onNext, onBack }: { initial: WizardCargo | null; o
 
       <div className="space-y-1.5">
         <Label>Special instructions (optional)</Label>
-        <Textarea {...register("special_instructions")} placeholder="Handling notes, hazards, etc." rows={2} />
+        <Textarea
+          {...register("special_instructions")}
+          placeholder="Handling notes, hazards, etc."
+          rows={2}
+        />
       </div>
 
       <WizardNav onBack={onBack} />
@@ -456,7 +558,15 @@ function CargoStep({ initial, onNext, onBack }: { initial: WizardCargo | null; o
 
 // ── Vehicle type step ──────────────────────────────────────────────────────────
 
-function VehicleStep({ initial, onNext, onBack }: { initial: string | null; onNext: (id: string) => void; onBack: () => void }) {
+function VehicleStep({
+  initial,
+  onNext,
+  onBack,
+}: {
+  initial: string | null;
+  onNext: (id: string) => void;
+  onBack: () => void;
+}) {
   const { vehicleTypes, isLoading } = useVehicleTypes();
   const [selected, setSelected] = useState<string | null>(initial);
 
@@ -488,7 +598,9 @@ function VehicleStep({ initial, onNext, onBack }: { initial: string | null; onNe
             </div>
           </button>
         ))}
-        {vehicleTypes.length === 0 && <p className="col-span-2 text-sm text-muted-foreground">No vehicle types configured.</p>}
+        {vehicleTypes.length === 0 && (
+          <p className="col-span-2 text-sm text-muted-foreground">No vehicle types configured.</p>
+        )}
       </div>
 
       <WizardNav
@@ -503,13 +615,27 @@ function VehicleStep({ initial, onNext, onBack }: { initial: string | null; onNe
 
 // ── Schedule step ──────────────────────────────────────────────────────────────
 
-function ScheduleStep({ initial, onNext, onBack }: { initial: string | null; onNext: (at: string | null) => void; onBack: () => void }) {
+function ScheduleStep({
+  initial,
+  onNext,
+  onBack,
+}: {
+  initial: string | null;
+  onNext: (at: string | null) => void;
+  onBack: () => void;
+}) {
   const [type, setType] = useState<"asap" | "scheduled">(initial ? "scheduled" : "asap");
   const [dateTime, setDateTime] = useState(initial ?? "");
 
   const handleNext = () => {
-    if (type === "asap") { onNext(null); return; }
-    if (!dateTime) { toast.error("Select a date and time"); return; }
+    if (type === "asap") {
+      onNext(null);
+      return;
+    }
+    if (!dateTime) {
+      toast.error("Select a date and time");
+      return;
+    }
     onNext(dateTime);
   };
 
@@ -522,7 +648,11 @@ function ScheduleStep({ initial, onNext, onBack }: { initial: string | null; onN
 
       <div className="grid gap-3 sm:grid-cols-2">
         {[
-          { value: "asap" as const, label: "As soon as possible", sub: "We'll assign a driver shortly" },
+          {
+            value: "asap" as const,
+            label: "As soon as possible",
+            sub: "We'll assign a driver shortly",
+          },
           { value: "scheduled" as const, label: "Specific date & time", sub: "Plan ahead" },
         ].map((opt) => (
           <button
@@ -572,13 +702,29 @@ function ReviewStep({
   const cargoName = cargoTypes.find((c) => c.id === state.cargo?.cargo_type_id)?.name ?? "—";
   const vehicleName = vehicleTypes.find((v) => v.id === state.vehicle_type_id)?.name ?? "—";
 
-  const Section = ({ title, step, children }: { title: string; step: number; children: React.ReactNode }) => (
-    <div className="rounded-md border p-3 space-y-2">
+  const Section = ({
+    title,
+    step,
+    children,
+  }: {
+    title: string;
+    step: number;
+    children: React.ReactNode;
+  }) => (
+    <div className="space-y-2 rounded-md border p-3">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium">{title}</p>
-        <Button type="button" variant="ghost" size="sm" className="text-xs h-6 px-2" onClick={() => onEdit(step)}>Edit</Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-6 px-2 text-xs"
+          onClick={() => onEdit(step)}
+        >
+          Edit
+        </Button>
       </div>
-      <div className="text-sm text-muted-foreground space-y-1">{children}</div>
+      <div className="space-y-1 text-sm text-muted-foreground">{children}</div>
     </div>
   );
 
@@ -586,24 +732,40 @@ function ReviewStep({
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold">Review your shipment</h2>
-        <p className="text-sm text-muted-foreground">Check everything before we calculate your quote.</p>
+        <p className="text-sm text-muted-foreground">
+          Check everything before we calculate your quote.
+        </p>
       </div>
 
       <Section title="Pickup" step={1}>
         <p>{state.pickup?.address}</p>
-        <p>Contact: {state.pickup?.contact_name} · {state.pickup?.contact_phone}</p>
+        <p>
+          Contact: {state.pickup?.contact_name} · {state.pickup?.contact_phone}
+        </p>
       </Section>
 
       <Section title="Destination" step={2}>
         <p>{state.destination?.address}</p>
-        <p>Contact: {state.destination?.contact_name} · {state.destination?.contact_phone}</p>
+        <p>
+          Contact: {state.destination?.contact_name} · {state.destination?.contact_phone}
+        </p>
       </Section>
 
       <Section title="Cargo" step={3}>
-        <p>{cargoName} · {state.cargo?.weight_kg} kg</p>
+        <p>
+          {cargoName} · {state.cargo?.weight_kg} kg
+        </p>
         <div className="flex flex-wrap gap-1">
-          {state.cargo?.is_fragile && <Badge variant="warning" className="text-xs">Fragile</Badge>}
-          {state.cargo?.is_hazardous && <Badge variant="destructive" className="text-xs">Hazardous</Badge>}
+          {state.cargo?.is_fragile && (
+            <Badge variant="warning" className="text-xs">
+              Fragile
+            </Badge>
+          )}
+          {state.cargo?.is_hazardous && (
+            <Badge variant="destructive" className="text-xs">
+              Hazardous
+            </Badge>
+          )}
           {state.cargo?.is_express && <Badge className="text-xs">Express</Badge>}
         </div>
       </Section>
@@ -613,7 +775,11 @@ function ReviewStep({
       </Section>
 
       <Section title="Schedule" step={5}>
-        <p>{state.scheduled_at ? new Date(state.scheduled_at).toLocaleString() : "As soon as possible"}</p>
+        <p>
+          {state.scheduled_at
+            ? new Date(state.scheduled_at).toLocaleString()
+            : "As soon as possible"}
+        </p>
       </Section>
 
       <WizardNav onBack={onBack} onNext={onNext} nextLabel="Get Quote" />
@@ -677,8 +843,10 @@ function QuoteStep({
     }
   }, [state, isNight, dispatch]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (!state.quote) void fetchQuote(); }, []);
+  useEffect(() => {
+    if (!state.quote) void fetchQuote();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const q = state.quote;
 
@@ -707,29 +875,46 @@ function QuoteStep({
       {error && (
         <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
           <p>{error}</p>
-          <Button variant="outline" size="sm" className="mt-2" onClick={() => void fetchQuote()}>Retry</Button>
+          <Button variant="outline" size="sm" className="mt-2" onClick={() => void fetchQuote()}>
+            Retry
+          </Button>
         </div>
       )}
 
       {q && !loading && (
         <Card>
-          <CardContent className="pt-4 space-y-2">
+          <CardContent className="space-y-2 pt-4">
             <Row label="Base fare" value={fmt(q.base_fare)} />
             <Row label={`Distance (${q.distance_km} km)`} value={fmt(q.distance_charge)} />
-            <Row label={`Weight (${state.cargo?.weight_kg ?? 0} kg)`} value={fmt(q.weight_charge)} />
-            {q.cargo_surcharge > 0 && <Row label="Cargo surcharge" value={fmt(q.cargo_surcharge)} />}
+            <Row
+              label={`Weight (${state.cargo?.weight_kg ?? 0} kg)`}
+              value={fmt(q.weight_charge)}
+            />
+            {q.cargo_surcharge > 0 && (
+              <Row label="Cargo surcharge" value={fmt(q.cargo_surcharge)} />
+            )}
             {q.area_surcharge > 0 && <Row label="Area surcharge" value={fmt(q.area_surcharge)} />}
-            {q.express_surcharge > 0 && <Row label="Express surcharge" value={fmt(q.express_surcharge)} />}
-            {q.night_surcharge > 0 && <Row label="Night surcharge" value={fmt(q.night_surcharge)} />}
-            {q.fragile_surcharge > 0 && <Row label="Fragile handling" value={fmt(q.fragile_surcharge)} />}
-            {q.hazardous_surcharge > 0 && <Row label="Hazardous handling" value={fmt(q.hazardous_surcharge)} />}
+            {q.express_surcharge > 0 && (
+              <Row label="Express surcharge" value={fmt(q.express_surcharge)} />
+            )}
+            {q.night_surcharge > 0 && (
+              <Row label="Night surcharge" value={fmt(q.night_surcharge)} />
+            )}
+            {q.fragile_surcharge > 0 && (
+              <Row label="Fragile handling" value={fmt(q.fragile_surcharge)} />
+            )}
+            {q.hazardous_surcharge > 0 && (
+              <Row label="Hazardous handling" value={fmt(q.hazardous_surcharge)} />
+            )}
             <Separator />
             <Row label="Subtotal" value={fmt(q.subtotal)} />
             <Row label={`Tax (${(q.tax_rate * 100).toFixed(1)}%)`} value={fmt(q.tax)} />
             <Separator />
             <Row label="Total" value={fmt(q.total)} bold />
             {q.distance_source === "haversine" && (
-              <p className="text-xs text-muted-foreground">* Distance estimated (straight-line). Actual road distance may vary.</p>
+              <p className="text-xs text-muted-foreground">
+                * Distance estimated (straight-line). Actual road distance may vary.
+              </p>
             )}
           </CardContent>
         </Card>
@@ -769,7 +954,7 @@ function PaymentStep({
       </div>
 
       {state.quote && (
-        <div className="rounded-md border bg-muted/50 p-3 flex items-center justify-between">
+        <div className="flex items-center justify-between rounded-md border bg-muted/50 p-3">
           <span className="text-sm font-medium">Total due</span>
           <span className="text-lg font-bold">{fmt(state.quote.total)}</span>
         </div>
@@ -777,7 +962,11 @@ function PaymentStep({
 
       <div className="grid gap-3 sm:grid-cols-2">
         {[
-          { value: "cod" as const, title: "Pay on Delivery", sub: "Pay when your shipment arrives" },
+          {
+            value: "cod" as const,
+            title: "Pay on Delivery",
+            sub: "Pay when your shipment arrives",
+          },
           { value: "online" as const, title: "Pay Online", sub: "Paystack (coming soon)" },
         ].map((opt) => (
           <button
@@ -810,12 +999,12 @@ function ConfirmationStep({ result }: { result: { shipment_id: string; order_id:
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-col items-center py-8 text-center space-y-4">
+    <div className="flex flex-col items-center space-y-4 py-8 text-center">
       <div className="rounded-full bg-green-100 p-4">
         <PartyPopper className="h-10 w-10 text-green-600" />
       </div>
       <h2 className="text-2xl font-bold">Order placed!</h2>
-      <p className="text-muted-foreground max-w-sm">
+      <p className="max-w-sm text-muted-foreground">
         Your shipment request has been submitted. Our team will review it and assign a driver
         shortly. You'll receive a notification when it's confirmed.
       </p>
@@ -913,7 +1102,7 @@ function StepProgress({ current }: { current: number }) {
                 {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
               </div>
               <span
-                className={`hidden sm:inline ml-1 text-xs ${active ? "font-medium text-foreground" : "text-muted-foreground"}`}
+                className={`ml-1 hidden text-xs sm:inline ${active ? "font-medium text-foreground" : "text-muted-foreground"}`}
               >
                 {s.label}
               </span>
@@ -985,7 +1174,11 @@ export function CreateShipmentWizardPage() {
           vehicle_type_id: state.vehicle_type_id || null,
           weight: state.cargo.weight_kg,
           dimensions: state.cargo.length_cm
-            ? { length_cm: state.cargo.length_cm, width_cm: state.cargo.width_cm, height_cm: state.cargo.height_cm }
+            ? {
+                length_cm: state.cargo.length_cm,
+                width_cm: state.cargo.width_cm,
+                height_cm: state.cargo.height_cm,
+              }
             : null,
           distance_km: state.quote.distance_km,
           quote_amount: state.quote.total,
@@ -1044,17 +1237,47 @@ export function CreateShipmentWizardPage() {
         },
       ];
       if (state.quote.cargo_surcharge > 0)
-        items.push({ order_id: order.id, label: "Cargo surcharge", qty: 1, unit_price: state.quote.cargo_surcharge });
+        items.push({
+          order_id: order.id,
+          label: "Cargo surcharge",
+          qty: 1,
+          unit_price: state.quote.cargo_surcharge,
+        });
       if (state.quote.area_surcharge > 0)
-        items.push({ order_id: order.id, label: "Area surcharge", qty: 1, unit_price: state.quote.area_surcharge });
+        items.push({
+          order_id: order.id,
+          label: "Area surcharge",
+          qty: 1,
+          unit_price: state.quote.area_surcharge,
+        });
       if (state.quote.express_surcharge > 0)
-        items.push({ order_id: order.id, label: "Express surcharge", qty: 1, unit_price: state.quote.express_surcharge });
+        items.push({
+          order_id: order.id,
+          label: "Express surcharge",
+          qty: 1,
+          unit_price: state.quote.express_surcharge,
+        });
       if (state.quote.night_surcharge > 0)
-        items.push({ order_id: order.id, label: "Night surcharge", qty: 1, unit_price: state.quote.night_surcharge });
+        items.push({
+          order_id: order.id,
+          label: "Night surcharge",
+          qty: 1,
+          unit_price: state.quote.night_surcharge,
+        });
       if (state.quote.fragile_surcharge > 0)
-        items.push({ order_id: order.id, label: "Fragile handling", qty: 1, unit_price: state.quote.fragile_surcharge });
+        items.push({
+          order_id: order.id,
+          label: "Fragile handling",
+          qty: 1,
+          unit_price: state.quote.fragile_surcharge,
+        });
       if (state.quote.hazardous_surcharge > 0)
-        items.push({ order_id: order.id, label: "Hazardous handling", qty: 1, unit_price: state.quote.hazardous_surcharge });
+        items.push({
+          order_id: order.id,
+          label: "Hazardous handling",
+          qty: 1,
+          unit_price: state.quote.hazardous_surcharge,
+        });
       items.push({ order_id: order.id, label: "Tax", qty: 1, unit_price: state.quote.tax });
 
       await supabase.from("order_items").insert(items);

@@ -77,11 +77,7 @@ export function CustomerDetailPage() {
                 Suspend
               </Button>
             ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setStatus({ status: "active" })}
-              >
+              <Button variant="outline" size="sm" onClick={() => setStatus({ status: "active" })}>
                 <UserCheck className="h-4 w-4" />
                 Activate
               </Button>
@@ -137,9 +133,7 @@ export function CustomerDetailPage() {
               <div>
                 <p className="text-2xl font-bold">
                   ₦
-                  {(
-                    customer.recent_orders.reduce((s, o) => s + o.total, 0) / 100
-                  ).toLocaleString()}
+                  {(customer.recent_orders.reduce((s, o) => s + o.total, 0) / 100).toLocaleString()}
                 </p>
                 <p className="text-xs text-muted-foreground">Recent spend</p>
               </div>
@@ -149,7 +143,7 @@ export function CustomerDetailPage() {
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6 lg:col-span-2">
           {/* Recent shipments */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">

@@ -103,7 +103,12 @@ export function CustomerDashboardPage() {
           { label: "Total shipments", value: stats.total, icon: Package, color: "text-blue-500" },
           { label: "Active", value: stats.active, icon: Truck, color: "text-amber-500" },
           { label: "Pending review", value: stats.pending, icon: Clock, color: "text-orange-500" },
-          { label: "Delivered", value: stats.delivered, icon: CheckCircle2, color: "text-green-500" },
+          {
+            label: "Delivered",
+            value: stats.delivered,
+            icon: CheckCircle2,
+            color: "text-green-500",
+          },
         ].map((s) => (
           <Card key={s.label}>
             <CardContent className="pt-6">
